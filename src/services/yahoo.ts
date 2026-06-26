@@ -160,26 +160,28 @@ export async function getQuotes(symbols: string[]): Promise<Map<string, Quote>> 
   return map;
 }
 
-/** Maps our range token to Yahoo chart {range, interval}. */
+/** Maps our range token to Yahoo chart {period1 start date, interval}. */
 function rangeToChartParams(range: HistoryRange): {
-  range: string;
+  period1: Date;
   interval: '5m' | '15m' | '60m' | '1d' | '1wk';
 } {
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
   switch (range) {
     case '1d':
-      return { range: '1d', interval: '5m' };
+      return { period1: new Date(now - 1 * day), interval: '5m' };
     case '1w':
-      return { range: '5d', interval: '15m' };
+      return { period1: new Date(now - 7 * day), interval: '15m' };
     case '1mo':
-      return { range: '1mo', interval: '1d' };
+      return { period1: new Date(now - 31 * day), interval: '1d' };
     case '6mo':
-      return { range: '6mo', interval: '1d' };
+      return { period1: new Date(now - 183 * day), interval: '1d' };
     case '1y':
-      return { range: '1y', interval: '1d' };
+      return { period1: new Date(now - 365 * day), interval: '1d' };
     case '5y':
-      return { range: '5y', interval: '1wk' };
+      return { period1: new Date(now - 5 * 365 * day), interval: '1wk' };
     default:
-      return { range: '1mo', interval: '1d' };
+      return { period1: new Date(now - 31 * day), interval: '1d' };
   }
 }
 
@@ -192,10 +194,10 @@ export async function getHistory(
   const cached = historyCache.get<HistoryResponse>(cacheKey);
   if (cached) return cached;
 
-  const { range: yRange, interval } = rangeToChartParams(range);
+const { period1, interval } = rangeToChartParams(range);
 
   const result = (await yahooFinance.chart(symbol, {
-    range: yRange,
+    period1,
     interval,
   })) as {
     meta?: { currency?: string };
